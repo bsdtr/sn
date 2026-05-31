@@ -58,3 +58,33 @@ pub fn load_notes(dir: &Path) -> io::Result<Vec<Note>> {
         })
         .collect()
 }
+
+pub fn create_note(dir: &Path, name: &str) -> io::Result<PathBuf> {
+    let name = sanitize_name(name);
+    if name.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Note name cannot be empty",
+        ));
+    }
+
+    fs::create_dir_all(dir)?;
+    let path = dir.join(format!("{name}.md"));
+
+    if path.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "A note with this name already exists",
+        ));
+    }
+
+    fs::write(&path, "")?;
+    Ok(path)
+}
+
+fn sanitize_name(name: &str) -> String {
+    name.trim()
+        .chars()
+        .filter(|c| !matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|'))
+        .collect()
+}

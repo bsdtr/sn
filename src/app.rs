@@ -1,11 +1,20 @@
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 
 use ratatui::widgets::ListState;
 
 use crate::notes::{self, Note};
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Mode {
+    Normal,
+    CreateNote {
+        input: String,
+        error: Option<String>,
+    },
+}
 
 pub struct App {
     pub notes_dir: PathBuf,
@@ -14,6 +23,7 @@ pub struct App {
     pub selected: usize,
     pub list_state: ListState,
     pub preview_scroll: u16,
+    pub mode: Mode,
     pub should_quit: bool,
 }
 
@@ -30,6 +40,7 @@ impl App {
             selected: 0,
             list_state: ListState::default(),
             preview_scroll: 0,
+            mode: Mode::Normal,
             should_quit: false,
         })
     }
@@ -50,6 +61,15 @@ impl App {
         Ok(())
     }
 
+    fn reload_notes_and_select(&mut self, path: &Path) -> io::Result<()> {
+        self.reload_notes()?;
+        if let Some(idx) = self.notes.iter().position(|n| n.path == path) {
+            self.selected = idx;
+            self.list_state.select(Some(idx));
+        }
+        Ok(())
+    }
+
     pub fn effective_left_width(&self, term_width: u16) -> u16 {
         let mut width = self.left_width.max(20);
         if term_width > 40 {
@@ -63,8 +83,16 @@ impl App {
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
+        match &self.mode {
+            Mode::Normal => self.handle_normal_key(key),
+            Mode::CreateNote { .. } => self.handle_create_note_key(key),
+        }
+    }
+
+    fn handle_normal_key(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => self.should_quit = true,
+            KeyCode::Char('a') => self.open_create_prompt(),
             KeyCode::Char('j') | KeyCode::Down => self.select_next(),
             KeyCode::Char('k') | KeyCode::Up => self.select_prev(),
             KeyCode::Char('g') if key.modifiers.contains(KeyModifiers::SHIFT) => self.select_last(),
@@ -74,6 +102,44 @@ impl App {
             KeyCode::Char('[') => self.scroll_preview_up(),
             _ => {}
         }
+    }
+
+    fn handle_create_note_key(&mut self, key: KeyEvent) {
+        let Mode::CreateNote { input, error } = &mut self.mode else {
+            return;
+        };
+
+        match key.code {
+            KeyCode::Esc => self.mode = Mode::Normal,
+            KeyCode::Enter => {
+                let name = input.clone();
+                match notes::create_note(&self.notes_dir, &name) {
+                    Ok(path) => {
+                        let _ = self.reload_notes_and_select(&path);
+                        self.mode = Mode::Normal;
+                    }
+                    Err(err) => {
+                        *error = Some(err.to_string());
+                    }
+                }
+            }
+            KeyCode::Backspace => {
+                input.pop();
+                *error = None;
+            }
+            KeyCode::Char(c) if !key.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+                input.push(c);
+                *error = None;
+            }
+            _ => {}
+        }
+    }
+
+    fn open_create_prompt(&mut self) {
+        self.mode = Mode::CreateNote {
+            input: String::new(),
+            error: None,
+        };
     }
 
     fn select_next(&mut self) {
@@ -129,6 +195,24 @@ impl App {
             let max = total - visible_lines;
             self.preview_scroll = self.preview_scroll.min(max);
         }
+    }
+
+    pub fn create_note_input(&self) -> Option<&str> {
+        match &self.mode {
+            Mode::CreateNote { input, .. } => Some(input.as_str()),
+            Mode::Normal => None,
+        }
+    }
+
+    pub fn create_note_error(&self) -> Option<&str> {
+        match &self.mode {
+            Mode::CreateNote { error, .. } => error.as_deref(),
+            Mode::Normal => None,
+        }
+    }
+
+    pub fn is_create_prompt_open(&self) -> bool {
+        matches!(self.mode, Mode::CreateNote { .. })
     }
 }
 

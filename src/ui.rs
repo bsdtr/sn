@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
     Frame,
 };
 
@@ -24,7 +24,11 @@ pub fn render(frame: &mut Frame, app: &mut App) {
 
     render_notes_panel(frame, columns[0], app);
     render_preview_panel(frame, columns[1], app);
-    render_status_bar(frame, root[1]);
+    render_status_bar(frame, root[1], app);
+
+    if app.is_create_prompt_open() {
+        render_create_prompt(frame, app);
+    }
 }
 
 fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
@@ -148,10 +152,88 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-fn render_status_bar(frame: &mut Frame, area: Rect) {
-    let help = Paragraph::new(Span::styled(
-        "↑↓/jk notes  [/] scroll  g/G top/bottom  q quit",
-        Style::default().add_modifier(Modifier::DIM),
-    ));
+fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
+    let help = if app.is_create_prompt_open() {
+        "Enter create  Esc cancel"
+    } else {
+        "↑↓/jk notes  [/] scroll  a new  g/G top/bottom  q quit"
+    };
+
+    let help = Paragraph::new(Span::styled(help, Style::default().add_modifier(Modifier::DIM)));
     frame.render_widget(help, area);
+}
+
+fn render_create_prompt(frame: &mut Frame, app: &App) {
+    let area = centered_rect(60, 7, frame.area());
+    frame.render_widget(Clear, area);
+
+    let input = app.create_note_input().unwrap_or("");
+    let block = Block::default()
+        .title(" New note ")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Yellow));
+
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let label = Paragraph::new("Note name:").style(Style::default().fg(Color::DarkGray));
+    frame.render_widget(
+        label,
+        Rect {
+            x: inner.x,
+            y: inner.y,
+            width: inner.width,
+            height: 1,
+        },
+    );
+
+    let input_line = format!("{input}_");
+    let input_widget = Paragraph::new(input_line).style(Style::default().fg(Color::White));
+    frame.render_widget(
+        input_widget,
+        Rect {
+            x: inner.x,
+            y: inner.y + 1,
+            width: inner.width,
+            height: 1,
+        },
+    );
+
+    let message = app
+        .create_note_error()
+        .map(|err| Line::from(Span::styled(err, Style::default().fg(Color::Red))))
+        .unwrap_or_else(|| {
+            Line::from(Span::styled(
+                "Creates a .md file in the notes directory",
+                Style::default().fg(Color::DarkGray),
+            ))
+        });
+
+    frame.render_widget(
+        Paragraph::new(message),
+        Rect {
+            x: inner.x,
+            y: inner.y + 2,
+            width: inner.width,
+            height: 1,
+        },
+    );
+
+    let cursor_x = inner.x + input.len() as u16;
+    let cursor_y = inner.y + 1;
+    frame.set_cursor_position((cursor_x, cursor_y));
+}
+
+fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
+    let popup_width = area.width.saturating_mul(percent_x) / 100;
+    let popup_height = height.min(area.height);
+    let x = area.x + (area.width.saturating_sub(popup_width)) / 2;
+    let y = area.y + (area.height.saturating_sub(popup_height)) / 2;
+
+    Rect {
+        x,
+        y,
+        width: popup_width.max(20),
+        height: popup_height,
+    }
 }

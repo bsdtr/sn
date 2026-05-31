@@ -42,6 +42,12 @@ fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> Resu
     loop {
         terminal.draw(|frame| ui::render(frame, app))?;
 
+        if app.is_create_prompt_open() {
+            terminal.show_cursor()?;
+        } else {
+            terminal.hide_cursor()?;
+        }
+
         if let Some(event) = poll_event()? {
             match event {
                 Event::Key(key) if key.kind == KeyEventKind::Press => app.handle_key(key),
