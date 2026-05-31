@@ -12,6 +12,12 @@ A TUI (Terminal User Interface) notes app inspired by Obsidian, built with [Rata
 cargo build --release
 ```
 
+## Releases
+
+Prebuilt binaries for Linux, macOS, and Windows are attached to [GitHub Releases](https://github.com/nulldutra/sn/releases).
+
+Create a release on GitHub (tag + publish) to trigger the build workflow automatically.
+
 ## Usage
 
 ```bash
