@@ -39,7 +39,10 @@ fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
 
     if app.notes.is_empty() {
         let empty = Paragraph::new(vec![
-            Line::from(Span::styled("No notes in:", Style::default().fg(Color::DarkGray))),
+            Line::from(Span::styled(
+                "No notes in:",
+                Style::default().fg(Color::DarkGray),
+            )),
             Line::from(Span::styled(
                 app.notes_dir.display().to_string(),
                 Style::default().add_modifier(Modifier::DIM),
@@ -75,9 +78,8 @@ fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
 
     let footer_y = area.bottom().saturating_sub(2);
     if footer_y > area.top() {
-        let footer = Paragraph::new(format!("{}/{}", app.selected + 1, app.notes.len())).style(
-            Style::default().fg(Color::DarkGray),
-        );
+        let footer = Paragraph::new(format!("{}/{}", app.selected + 1, app.notes.len()))
+            .style(Style::default().fg(Color::DarkGray));
         frame.render_widget(
             footer,
             Rect {
@@ -115,9 +117,8 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area);
 
     if app.notes.is_empty() {
-        let empty = Paragraph::new("Select or create a note.").style(
-            Style::default().fg(Color::DarkGray),
-        );
+        let empty =
+            Paragraph::new("Select or create a note.").style(Style::default().fg(Color::DarkGray));
         frame.render_widget(empty.block(block), area);
         return;
     }
@@ -127,7 +128,8 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     };
 
     if content.is_empty() && !editing {
-        let empty = Paragraph::new("(empty file)").style(Style::default().add_modifier(Modifier::DIM));
+        let empty =
+            Paragraph::new("(empty file)").style(Style::default().add_modifier(Modifier::DIM));
         frame.render_widget(empty.block(block), area);
         return;
     }
@@ -154,12 +156,7 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     frame.render_widget(paragraph, area);
     if total > inner_height && inner.height > 0 {
         let end = (app.preview_scroll + inner_height).min(total);
-        let scroll_info = format!(
-            "Line {}-{} of {}",
-            app.preview_scroll + 1,
-            end,
-            total
-        );
+        let scroll_info = format!("Line {}-{} of {}", app.preview_scroll + 1, end, total);
         frame.render_widget(
             Paragraph::new(scroll_info).style(Style::default().fg(Color::DarkGray)),
             Rect {
@@ -203,7 +200,10 @@ fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
         "↑↓/jk notes  [/] scroll  a new  i edit  g/G top/bottom  q quit"
     };
 
-    let help = Paragraph::new(Span::styled(help, Style::default().add_modifier(Modifier::DIM)));
+    let help = Paragraph::new(Span::styled(
+        help,
+        Style::default().add_modifier(Modifier::DIM),
+    ));
     frame.render_widget(help, area);
 }
 

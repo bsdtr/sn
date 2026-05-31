@@ -67,13 +67,17 @@ impl Renderer {
             Event::Text(text) => self.push_text(text.to_string()),
             Event::Code(text) => self.push_span(
                 text.to_string(),
-                Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD),
             ),
             Event::SoftBreak | Event::HardBreak => self.flush_line(),
             Event::Rule => {
                 self.flush_line();
-                self.lines
-                    .push(Line::from(Span::styled("─".repeat(40), Style::default().fg(Color::DarkGray))));
+                self.lines.push(Line::from(Span::styled(
+                    "─".repeat(40),
+                    Style::default().fg(Color::DarkGray),
+                )));
                 self.lines.push(Line::from(""));
             }
             Event::Html(text) | Event::InlineHtml(text) => {
@@ -92,8 +96,11 @@ impl Renderer {
             }
             Tag::BlockQuote(_) => {
                 self.flush_line();
-                self.styles
-                    .push(Style::default().fg(Color::Magenta).add_modifier(Modifier::ITALIC));
+                self.styles.push(
+                    Style::default()
+                        .fg(Color::Magenta)
+                        .add_modifier(Modifier::ITALIC),
+                );
             }
             Tag::CodeBlock(_kind) => {
                 self.flush_line();
@@ -133,8 +140,11 @@ impl Renderer {
                 .push(self.current_style().add_modifier(Modifier::CROSSED_OUT)),
             Tag::Link { dest_url, .. } => {
                 self.link_url = Some(dest_url.to_string());
-                self.styles
-                    .push(Style::default().fg(Color::Blue).add_modifier(Modifier::UNDERLINED));
+                self.styles.push(
+                    Style::default()
+                        .fg(Color::Blue)
+                        .add_modifier(Modifier::UNDERLINED),
+                );
             }
             _ => {}
         }
@@ -213,7 +223,8 @@ impl Renderer {
         if self.current.is_empty() {
             return;
         }
-        self.lines.push(Line::from(std::mem::take(&mut self.current)));
+        self.lines
+            .push(Line::from(std::mem::take(&mut self.current)));
     }
 
     fn current_style(&self) -> Style {

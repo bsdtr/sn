@@ -54,7 +54,11 @@ pub fn load_notes(dir: &Path) -> io::Result<Vec<Note>> {
                 .unwrap_or("untitled")
                 .to_string();
             let content = fs::read_to_string(&path).unwrap_or_default();
-            Ok(Note { name, path, content })
+            Ok(Note {
+                name,
+                path,
+                content,
+            })
         })
         .collect()
 }

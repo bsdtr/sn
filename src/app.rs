@@ -135,7 +135,11 @@ impl App {
                 input.pop();
                 *error = None;
             }
-            KeyCode::Char(c) if !key.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+            KeyCode::Char(c)
+                if !key
+                    .modifiers
+                    .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
+            {
                 input.push(c);
                 *error = None;
             }
@@ -184,7 +188,11 @@ impl App {
                 move_cursor_down(content, cursor);
                 *status = None;
             }
-            KeyCode::Char(c) if !key.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+            KeyCode::Char(c)
+                if !key
+                    .modifiers
+                    .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
+            {
                 insert_char(content, cursor, c);
                 *status = None;
             }
@@ -277,7 +285,12 @@ impl App {
     }
 
     pub fn preview_content(&self) -> Option<&str> {
-        if let Mode::EditNote { content, note_index, .. } = &self.mode {
+        if let Mode::EditNote {
+            content,
+            note_index,
+            ..
+        } = &self.mode
+        {
             if *note_index == self.selected {
                 return Some(content.as_str());
             }
@@ -304,7 +317,10 @@ impl App {
         }
 
         if self.is_editing_selected() {
-            if let Mode::EditNote { content, cursor, .. } = &self.mode {
+            if let Mode::EditNote {
+                content, cursor, ..
+            } = &self.mode
+            {
                 let cursor_line = cursor_line(content, *cursor) as u16;
                 if cursor_line < self.preview_scroll {
                     self.preview_scroll = cursor_line;
@@ -410,7 +426,12 @@ fn position_at(content: &str, line: usize, column: usize) -> usize {
                 .unwrap_or(content.len());
             let line_len = content[line_start..line_end].chars().count();
             let col = column.min(line_len);
-            return index + content[line_start..line_end].chars().take(col).map(|c| c.len_utf8()).sum::<usize>();
+            return index
+                + content[line_start..line_end]
+                    .chars()
+                    .take(col)
+                    .map(|c| c.len_utf8())
+                    .sum::<usize>();
         }
 
         if ch == '\n' {
