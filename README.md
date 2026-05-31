@@ -29,10 +29,10 @@ Optional environment variables:
 
 ## Interface
 
-![](./.assets/interface.png)
+![](./.assets/image.png)
 
 - **Left panel**: note list (`.md` and `.txt` files)
-- **Right panel**: content of the selected note
+- **Right panel**: rendered Markdown preview (raw text while editing)
 
 ## Keybindings
 
