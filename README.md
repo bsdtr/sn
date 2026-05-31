@@ -29,14 +29,7 @@ Optional environment variables:
 
 ## Interface
 
-```
-┌─ Notes ──────────────┐┌─ Preview ──────────────────────┐
-│ welcome              ││ # Welcome to sn                │
-│ ideas                ││                                │
-│                      ││ sn is a TUI notes app...       │
-└──────────────────────┘└────────────────────────────────┘
- ↑↓/jk notes  [/] scroll  g/G top/bottom  q quit
-```
+![](./.assets/image.png)
 
 - **Left panel**: note list (`.md` and `.txt` files)
 - **Right panel**: content of the selected note
