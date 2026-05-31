@@ -94,15 +94,23 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     let inner_height = area.height.saturating_sub(2) as u16;
     app.clamp_preview_scroll(inner_height);
 
+    let editing = app.is_editing_selected();
     let title = app
         .selected_note()
-        .map(|n| format!(" {} ", n.name))
+        .map(|n| {
+            if editing {
+                format!(" {} [EDIT] ", n.name)
+            } else {
+                format!(" {} ", n.name)
+            }
+        })
         .unwrap_or_else(|| " Preview ".to_string());
 
+    let border_color = if editing { Color::Yellow } else { Color::Cyan };
     let block = Block::default()
         .title(title)
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Cyan));
+        .border_style(Style::default().fg(border_color));
 
     let inner = block.inner(area);
 
@@ -114,24 +122,24 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
         return;
     }
 
-    let Some(note) = app.selected_note() else {
+    let Some(content) = app.preview_content() else {
         return;
     };
 
-    if note.content.is_empty() {
+    if content.is_empty() && !editing {
         let empty = Paragraph::new("(empty file)").style(Style::default().add_modifier(Modifier::DIM));
         frame.render_widget(empty.block(block), area);
         return;
     }
 
-    let paragraph = Paragraph::new(note.content.as_str())
+    let paragraph = Paragraph::new(content)
         .block(block)
         .wrap(Wrap { trim: false })
         .scroll((app.preview_scroll, 0));
 
     frame.render_widget(paragraph, area);
 
-    let total = note.content.lines().count() as u16;
+    let total = line_count(content) as u16;
     if total > inner_height && inner.height > 0 {
         let end = (app.preview_scroll + inner_height).min(total);
         let scroll_info = format!(
@@ -150,13 +158,42 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
             },
         );
     }
+
+    if editing {
+        if let Some(status) = app.edit_status() {
+            let color = if status == "Saved" {
+                Color::Green
+            } else {
+                Color::Red
+            };
+            frame.render_widget(
+                Paragraph::new(status).style(Style::default().fg(color)),
+                Rect {
+                    x: inner.x,
+                    y: inner.y,
+                    width: inner.width.min(status.len() as u16 + 1),
+                    height: 1,
+                },
+            );
+        }
+
+        if let Some((x, y)) = app.cursor_position_in_preview(inner) {
+            frame.set_cursor_position((x, y));
+        }
+    }
+}
+
+fn line_count(content: &str) -> usize {
+    content.lines().count().max(1)
 }
 
 fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
     let help = if app.is_create_prompt_open() {
         "Enter create  Esc cancel"
+    } else if app.is_editing() {
+        "Esc normal  s save  arrows move  type to edit"
     } else {
-        "↑↓/jk notes  [/] scroll  a new  g/G top/bottom  q quit"
+        "↑↓/jk notes  [/] scroll  a new  i edit  g/G top/bottom  q quit"
     };
 
     let help = Paragraph::new(Span::styled(help, Style::default().add_modifier(Modifier::DIM)));

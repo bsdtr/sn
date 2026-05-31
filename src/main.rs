@@ -42,7 +42,7 @@ fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> Resu
     loop {
         terminal.draw(|frame| ui::render(frame, app))?;
 
-        if app.is_create_prompt_open() {
+        if app.is_create_prompt_open() || app.is_editing() {
             terminal.show_cursor()?;
         } else {
             terminal.hide_cursor()?;

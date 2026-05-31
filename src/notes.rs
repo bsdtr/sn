@@ -82,6 +82,10 @@ pub fn create_note(dir: &Path, name: &str) -> io::Result<PathBuf> {
     Ok(path)
 }
 
+pub fn save_note(path: &Path, content: &str) -> io::Result<()> {
+    fs::write(path, content)
+}
+
 fn sanitize_name(name: &str) -> String {
     name.trim()
         .chars()
