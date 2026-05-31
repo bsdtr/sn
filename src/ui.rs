@@ -93,7 +93,7 @@ fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
-    let inner_height = area.height.saturating_sub(2) as u16;
+    let inner_height = area.height.saturating_sub(2);
     app.clamp_preview_scroll(inner_height);
 
     let editing = app.is_editing_selected();
