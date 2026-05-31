@@ -17,10 +17,10 @@ sn is a TUI notes app inspired by Obsidian.
 
 Place `.md` or `.txt` files in the `notes/` directory.
 Each file appears in the left panel list.
+The preview panel renders Markdown formatting automatically.
 
 ## Next steps
 
-- Note editing
 - Search
 - Links between notes
-- Markdown rendering
+- Graph view

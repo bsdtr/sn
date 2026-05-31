@@ -132,14 +132,26 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
         return;
     }
 
-    let paragraph = Paragraph::new(content)
-        .block(block)
-        .wrap(Wrap { trim: false })
-        .scroll((app.preview_scroll, 0));
+    let paragraph = if editing {
+        Paragraph::new(content)
+            .block(block)
+            .wrap(Wrap { trim: false })
+            .scroll((app.preview_scroll, 0))
+    } else {
+        let text = crate::markdown::render(content);
+        Paragraph::new(text)
+            .block(block)
+            .wrap(Wrap { trim: false })
+            .scroll((app.preview_scroll, 0))
+    };
+
+    let total = if editing {
+        line_count(content) as u16
+    } else {
+        crate::markdown::line_count(content) as u16
+    };
 
     frame.render_widget(paragraph, area);
-
-    let total = line_count(content) as u16;
     if total > inner_height && inner.height > 0 {
         let end = (app.preview_scroll + inner_height).min(total);
         let scroll_info = format!(

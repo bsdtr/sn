@@ -291,7 +291,11 @@ impl App {
             return;
         };
 
-        let total = line_count(content) as u16;
+        let total = if self.is_editing_selected() {
+            line_count(content) as u16
+        } else {
+            crate::markdown::line_count(content) as u16
+        };
         if total <= visible_lines {
             self.preview_scroll = 0;
         } else {
