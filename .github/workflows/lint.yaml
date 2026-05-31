@@ -1,0 +1,28 @@
+name: Rust Linting
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  # Force Clippy warnings to trigger a build failure
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  lint:
+    name: Code Quality and Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run Rustfmt Check
+        run: cargo fmt --check
+
+      - name: Run Clippy Static Analysis
+        run: cargo clippy --all-targets --all-features
+
