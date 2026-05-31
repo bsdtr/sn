@@ -29,7 +29,7 @@ Optional environment variables:
 
 ## Interface
 
-![](./.assets/image.png)
+![](./.assets/interface.png)
 
 - **Left panel**: note list (`.md` and `.txt` files)
 - **Right panel**: content of the selected note
