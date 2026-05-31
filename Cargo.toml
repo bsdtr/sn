@@ -1,0 +1,10 @@
+[package]
+name = "sn"
+version = "0.1.0"
+edition = "2021"
+description = "TUI notes app inspired by Obsidian"
+license = "BSD-2-Clause"
+
+[dependencies]
+crossterm = "0.28"
+ratatui = "0.29"
