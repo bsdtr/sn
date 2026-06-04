@@ -98,6 +98,16 @@ pub fn save_note(path: &Path, content: &str) -> io::Result<()> {
     fs::write(path, content)
 }
 
+pub fn delete_note(path: &Path) -> io::Result<()> {
+    if !path.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "Note file not found",
+        ));
+    }
+    fs::remove_file(path)
+}
+
 pub fn relative_path(root: &Path, path: &Path) -> String {
     path.strip_prefix(root)
         .unwrap_or(path)
@@ -191,6 +201,19 @@ mod tests {
 
         let entries = list_directory(&root, &nested).unwrap();
         assert!(matches!(entries.first(), Some(BrowserEntry::Parent)));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn delete_note_removes_file() {
+        let root = temp_notes_root();
+        fs::create_dir_all(&root).unwrap();
+        let path = root.join("gone.md");
+        fs::write(&path, "bye").unwrap();
+
+        delete_note(&path).unwrap();
+        assert!(!path.exists());
 
         let _ = fs::remove_dir_all(root);
     }

@@ -30,6 +30,10 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     if app.is_create_prompt_open() {
         render_create_prompt(frame, app);
     }
+
+    if app.is_delete_prompt_open() {
+        render_delete_prompt(frame, app);
+    }
 }
 
 fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
@@ -223,10 +227,12 @@ fn line_count(content: &str) -> usize {
 fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
     let help = if app.is_create_prompt_open() {
         "Enter create  Esc cancel"
+    } else if app.is_delete_prompt_open() {
+        "Enter delete  Esc cancel"
     } else if app.is_editing() {
         "Esc save & exit  arrows move  type to edit"
     } else {
-        "↑↓/jk navigate  h/l parent/enter  a new  i edit  [/] scroll  q quit"
+        "↑↓/jk navigate  h/l parent/enter  a new  i edit  d delete  [/] scroll  q quit"
     };
 
     let help = Paragraph::new(Span::styled(
@@ -297,6 +303,52 @@ fn render_create_prompt(frame: &mut Frame, app: &App) {
     let cursor_x = inner.x + input.len() as u16;
     let cursor_y = inner.y + 1;
     frame.set_cursor_position((cursor_x, cursor_y));
+}
+
+fn render_delete_prompt(frame: &mut Frame, app: &App) {
+    let area = centered_rect(60, 6, frame.area());
+    frame.render_widget(Clear, area);
+
+    let name = app.delete_note_name().unwrap_or("");
+    let block = Block::default()
+        .title(" Delete note ")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Red));
+
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let message = Paragraph::new(format!("Delete \"{name}\"? This cannot be undone."))
+        .style(Style::default().fg(Color::White));
+    frame.render_widget(
+        message,
+        Rect {
+            x: inner.x,
+            y: inner.y,
+            width: inner.width,
+            height: 2,
+        },
+    );
+
+    let hint = app.delete_note_error().map_or_else(
+        || {
+            Line::from(Span::styled(
+                "Press Enter to confirm, Esc to cancel",
+                Style::default().fg(Color::DarkGray),
+            ))
+        },
+        |err| Line::from(Span::styled(err, Style::default().fg(Color::Red))),
+    );
+
+    frame.render_widget(
+        Paragraph::new(hint),
+        Rect {
+            x: inner.x,
+            y: inner.y + 2,
+            width: inner.width,
+            height: 1,
+        },
+    );
 }
 
 fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {

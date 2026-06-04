@@ -6,6 +6,7 @@ sn is a TUI notes app inspired by Obsidian.
 
 - **a**: create a new note (opens a name prompt)
 - **i**: edit the selected note in the preview panel
+- **d**: delete the selected note (confirmation prompt)
 - **Esc**: save changes and leave edit mode
 - **j/k** or **↑/↓**: navigate the browser list
 - **h/l** or **←/→**: go to parent / enter folder

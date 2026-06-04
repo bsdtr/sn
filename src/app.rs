@@ -20,6 +20,11 @@ pub enum Mode {
         cursor: usize,
         status: Option<String>,
     },
+    DeleteNote {
+        path: PathBuf,
+        name: String,
+        error: Option<String>,
+    },
 }
 
 pub struct App {
@@ -122,6 +127,7 @@ impl App {
             Mode::Normal => self.handle_normal_key(key),
             Mode::CreateNote { .. } => self.handle_create_note_key(key),
             Mode::EditNote { .. } => self.handle_edit_note_key(key),
+            Mode::DeleteNote { .. } => self.handle_delete_note_key(key),
         }
     }
 
@@ -130,6 +136,7 @@ impl App {
             KeyCode::Char('q') | KeyCode::Esc => self.should_quit = true,
             KeyCode::Char('a') => self.open_create_prompt(),
             KeyCode::Char('i') => self.open_edit_mode(),
+            KeyCode::Char('d') => self.open_delete_prompt(),
             KeyCode::Char('h') | KeyCode::Left => self.go_parent(),
             KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => self.activate_selection(),
             KeyCode::Char('j') | KeyCode::Down => self.select_next(),
@@ -277,6 +284,41 @@ impl App {
         };
     }
 
+    fn open_delete_prompt(&mut self) {
+        let Some(note) = self.selected_note().cloned() else {
+            return;
+        };
+
+        self.mode = Mode::DeleteNote {
+            path: note.path,
+            name: note.name,
+            error: None,
+        };
+    }
+
+    fn handle_delete_note_key(&mut self, key: KeyEvent) {
+        let Mode::DeleteNote { path, error, .. } = &mut self.mode else {
+            return;
+        };
+
+        match key.code {
+            KeyCode::Esc => self.mode = Mode::Normal,
+            KeyCode::Enter => {
+                let path = path.clone();
+                match notes::delete_note(&path) {
+                    Ok(()) => {
+                        let _ = self.reload_entries();
+                        self.mode = Mode::Normal;
+                    }
+                    Err(err) => {
+                        *error = Some(err.to_string());
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
     fn go_parent(&mut self) {
         if self.current_dir == self.notes_dir {
             return;
@@ -416,6 +458,24 @@ impl App {
 
     pub fn is_create_prompt_open(&self) -> bool {
         matches!(self.mode, Mode::CreateNote { .. })
+    }
+
+    pub fn is_delete_prompt_open(&self) -> bool {
+        matches!(self.mode, Mode::DeleteNote { .. })
+    }
+
+    pub fn delete_note_name(&self) -> Option<&str> {
+        match &self.mode {
+            Mode::DeleteNote { name, .. } => Some(name.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn delete_note_error(&self) -> Option<&str> {
+        match &self.mode {
+            Mode::DeleteNote { error, .. } => error.as_deref(),
+            _ => None,
+        }
     }
 
     pub fn is_editing_selected(&self) -> bool {

@@ -44,6 +44,7 @@ Optional environment variables:
 |---------------|---------------------------|
 | `a`           | Create a new note         |
 | `i`           | Edit selected note        |
+| `d`           | Delete selected note      |
 | `Esc`         | Save and exit edit mode   |
 | `h` / `←`     | Go to parent directory    |
 | `l` / `→`     | Enter folder              |
