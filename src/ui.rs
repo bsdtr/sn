@@ -1,6 +1,6 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
     Frame,
@@ -8,8 +8,10 @@ use ratatui::{
 
 use crate::app::App;
 use crate::notes::BrowserEntry;
+use crate::theme::{self, Theme};
 
 pub fn render(frame: &mut Frame, app: &mut App) {
+    let theme = theme::detect();
     let area = frame.area();
     let left_width = app.effective_left_width(area.width);
 
@@ -23,20 +25,20 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         .constraints([Constraint::Length(left_width), Constraint::Min(0)])
         .split(root[0]);
 
-    render_notes_panel(frame, columns[0], app);
-    render_preview_panel(frame, columns[1], app);
-    render_status_bar(frame, root[1], app);
+    render_notes_panel(frame, columns[0], app, theme);
+    render_preview_panel(frame, columns[1], app, theme);
+    render_status_bar(frame, root[1], app, theme);
 
     if app.is_create_prompt_open() {
-        render_create_prompt(frame, app);
+        render_create_prompt(frame, app, theme);
     }
 
     if app.is_delete_prompt_open() {
-        render_delete_prompt(frame, app);
+        render_delete_prompt(frame, app, theme);
     }
 }
 
-fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
+fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App, theme: Theme) {
     let block = Block::default()
         .title(app.notes_panel_title())
         .borders(Borders::ALL)
@@ -44,13 +46,10 @@ fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
 
     if app.entries.is_empty() {
         let empty = Paragraph::new(vec![
-            Line::from(Span::styled(
-                "No notes in:",
-                Style::default().fg(Color::DarkGray),
-            )),
+            Line::from(Span::styled("No notes in:", theme.text_secondary())),
             Line::from(Span::styled(
                 app.current_dir.display().to_string(),
-                Style::default().add_modifier(Modifier::DIM),
+                theme.text_dim(),
             )),
         ])
         .block(block)
@@ -65,18 +64,15 @@ fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
         .enumerate()
         .map(|(i, entry)| {
             let (label, entry_style) = match entry {
-                BrowserEntry::Parent => ("../".to_string(), Style::default().fg(Color::DarkGray)),
+                BrowserEntry::Parent => ("../".to_string(), theme.text_secondary()),
                 BrowserEntry::Directory { name, .. } => {
                     (format!("{name}/"), Style::default().fg(Color::Yellow))
                 }
-                BrowserEntry::Note(note) => (note.name.clone(), Style::default()),
+                BrowserEntry::Note(note) => (note.name.clone(), theme.text_primary()),
             };
 
             let style = if i == app.selected {
-                Style::default()
-                    .bg(Color::Blue)
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD)
+                theme.selection()
             } else {
                 entry_style
             };
@@ -93,7 +89,7 @@ fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     let footer_y = area.bottom().saturating_sub(2);
     if footer_y > area.top() {
         let footer = Paragraph::new(format!("{}/{}", app.selected + 1, app.entries.len()))
-            .style(Style::default().fg(Color::DarkGray));
+            .style(theme.text_secondary());
         frame.render_widget(
             footer,
             Rect {
@@ -106,7 +102,7 @@ fn render_notes_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
+fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App, theme: Theme) {
     let inner_height = area.height.saturating_sub(2);
     app.clamp_preview_scroll(inner_height);
 
@@ -128,7 +124,7 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
                 Some(BrowserEntry::Directory { name, .. }) => {
                     frame.render_widget(
                         Paragraph::new(format!("Folder: {name}/\nPress l or Enter to open."))
-                            .style(Style::default().fg(Color::DarkGray))
+                            .style(theme.text_secondary())
                             .block(block),
                         area,
                     );
@@ -137,7 +133,7 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
                 Some(BrowserEntry::Parent) => {
                     frame.render_widget(
                         Paragraph::new("Parent directory\nPress l or Enter to go up.")
-                            .style(Style::default().fg(Color::DarkGray))
+                            .style(theme.text_secondary())
                             .block(block),
                         area,
                     );
@@ -149,7 +145,7 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
 
         frame.render_widget(
             Paragraph::new(message)
-                .style(Style::default().fg(Color::DarkGray))
+                .style(theme.text_secondary())
                 .block(block),
             area,
         );
@@ -161,19 +157,19 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     };
 
     if content.is_empty() && !editing {
-        let empty =
-            Paragraph::new("(empty file)").style(Style::default().add_modifier(Modifier::DIM));
+        let empty = Paragraph::new("(empty file)").style(theme.text_dim());
         frame.render_widget(empty.block(block), area);
         return;
     }
 
     let paragraph = if editing {
         Paragraph::new(content)
+            .style(theme.text_primary())
             .block(block)
             .wrap(Wrap { trim: false })
             .scroll((app.preview_scroll, 0))
     } else {
-        let text = crate::markdown::render(content);
+        let text = crate::markdown::render(content, theme);
         Paragraph::new(text)
             .block(block)
             .wrap(Wrap { trim: false })
@@ -191,7 +187,7 @@ fn render_preview_panel(frame: &mut Frame, area: Rect, app: &mut App) {
         let end = (app.preview_scroll + inner_height).min(total);
         let scroll_info = format!("Line {}-{} of {}", app.preview_scroll + 1, end, total);
         frame.render_widget(
-            Paragraph::new(scroll_info).style(Style::default().fg(Color::DarkGray)),
+            Paragraph::new(scroll_info).style(theme.text_secondary()),
             Rect {
                 x: inner.x,
                 y: inner.bottom().saturating_sub(1),
@@ -224,7 +220,7 @@ fn line_count(content: &str) -> usize {
     content.lines().count().max(1)
 }
 
-fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
+fn render_status_bar(frame: &mut Frame, area: Rect, app: &App, theme: Theme) {
     let help = if app.is_create_prompt_open() {
         "Enter create  Esc cancel"
     } else if app.is_delete_prompt_open() {
@@ -235,14 +231,11 @@ fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
         "↑↓/jk navigate  h/l parent/enter  a new  i edit  d delete  [/] scroll  q quit"
     };
 
-    let help = Paragraph::new(Span::styled(
-        help,
-        Style::default().add_modifier(Modifier::DIM),
-    ));
+    let help = Paragraph::new(Span::styled(help, theme.text_dim()));
     frame.render_widget(help, area);
 }
 
-fn render_create_prompt(frame: &mut Frame, app: &App) {
+fn render_create_prompt(frame: &mut Frame, app: &App, theme: Theme) {
     let area = centered_rect(60, 7, frame.area());
     frame.render_widget(Clear, area);
 
@@ -250,14 +243,15 @@ fn render_create_prompt(frame: &mut Frame, app: &App) {
     let block = Block::default()
         .title(" New note ")
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Yellow));
+        .border_style(Style::default().fg(Color::Yellow))
+        .style(theme.popup_surface());
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
     let current_dir = app.current_dir.display().to_string();
-    let label = Paragraph::new(format!("Note name (in {current_dir}):"))
-        .style(Style::default().fg(Color::DarkGray));
+    let label =
+        Paragraph::new(format!("Note name (in {current_dir}):")).style(theme.text_secondary());
     frame.render_widget(
         label,
         Rect {
@@ -269,7 +263,7 @@ fn render_create_prompt(frame: &mut Frame, app: &App) {
     );
 
     let input_line = format!("{input}_");
-    let input_widget = Paragraph::new(input_line).style(Style::default().fg(Color::White));
+    let input_widget = Paragraph::new(input_line).style(theme.popup_text());
     frame.render_widget(
         input_widget,
         Rect {
@@ -286,7 +280,7 @@ fn render_create_prompt(frame: &mut Frame, app: &App) {
         .unwrap_or_else(|| {
             Line::from(Span::styled(
                 "Creates a .md file in the current folder",
-                Style::default().fg(Color::DarkGray),
+                theme.text_secondary(),
             ))
         });
 
@@ -305,7 +299,7 @@ fn render_create_prompt(frame: &mut Frame, app: &App) {
     frame.set_cursor_position((cursor_x, cursor_y));
 }
 
-fn render_delete_prompt(frame: &mut Frame, app: &App) {
+fn render_delete_prompt(frame: &mut Frame, app: &App, theme: Theme) {
     let area = centered_rect(60, 6, frame.area());
     frame.render_widget(Clear, area);
 
@@ -313,13 +307,14 @@ fn render_delete_prompt(frame: &mut Frame, app: &App) {
     let block = Block::default()
         .title(" Delete note ")
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Red));
+        .border_style(Style::default().fg(Color::Red))
+        .style(theme.popup_surface());
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
     let message = Paragraph::new(format!("Delete \"{name}\"? This cannot be undone."))
-        .style(Style::default().fg(Color::White));
+        .style(theme.popup_text());
     frame.render_widget(
         message,
         Rect {
@@ -334,7 +329,7 @@ fn render_delete_prompt(frame: &mut Frame, app: &App) {
         || {
             Line::from(Span::styled(
                 "Press Enter to confirm, Esc to cancel",
-                Style::default().fg(Color::DarkGray),
+                theme.text_secondary(),
             ))
         },
         |err| Line::from(Span::styled(err, Style::default().fg(Color::Red))),

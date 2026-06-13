@@ -1,6 +1,7 @@
 mod app;
 mod markdown;
 mod notes;
+mod theme;
 mod ui;
 
 use std::io::{stdout, Stdout};

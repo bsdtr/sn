@@ -30,6 +30,7 @@ Optional environment variables:
 |-----------------|----------------------------|-----------|
 | `SN_NOTES_DIR`  | Notes directory            | `./notes` |
 | `SN_LEFT_WIDTH` | Left panel width (columns) | `32`      |
+| `SN_LIGHT_THEME` | Force light-theme colors (set on Windows Terminal light) | unset |
 
 ## Interface
 
