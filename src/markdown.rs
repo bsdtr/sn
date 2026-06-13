@@ -2,8 +2,10 @@ use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 
-pub fn render(content: &str) -> Text<'static> {
-    let lines = render_lines(content);
+use crate::theme::Theme;
+
+pub fn render(content: &str, theme: Theme) -> Text<'static> {
+    let lines = render_lines(content, theme);
     if lines.is_empty() {
         Text::from("")
     } else {
@@ -15,11 +17,11 @@ pub fn line_count(content: &str) -> usize {
     if content.is_empty() {
         return 1;
     }
-    render_lines(content).len().max(1)
+    render_lines(content, crate::theme::detect()).len().max(1)
 }
 
-fn render_lines(content: &str) -> Vec<Line<'static>> {
-    let mut renderer = Renderer::new();
+fn render_lines(content: &str, theme: Theme) -> Vec<Line<'static>> {
+    let mut renderer = Renderer::new(theme);
     let parser = Parser::new_ext(content, Options::all());
     for event in parser {
         renderer.handle(event);
@@ -28,6 +30,7 @@ fn render_lines(content: &str) -> Vec<Line<'static>> {
 }
 
 struct Renderer {
+    theme: Theme,
     lines: Vec<Line<'static>>,
     current: Vec<Span<'static>>,
     styles: Vec<Style>,
@@ -39,8 +42,9 @@ struct Renderer {
 }
 
 impl Renderer {
-    fn new() -> Self {
+    fn new(theme: Theme) -> Self {
         Self {
+            theme,
             lines: Vec::new(),
             current: Vec::new(),
             styles: vec![Style::default()],
@@ -92,7 +96,7 @@ impl Renderer {
             Tag::Paragraph => {}
             Tag::Heading { level, .. } => {
                 self.flush_line();
-                self.styles.push(heading_style(level));
+                self.styles.push(heading_style(level, self.theme));
             }
             Tag::BlockQuote(_) => {
                 self.flush_line();
@@ -232,7 +236,7 @@ impl Renderer {
     }
 }
 
-fn heading_style(level: HeadingLevel) -> Style {
+fn heading_style(level: HeadingLevel, theme: Theme) -> Style {
     match level {
         HeadingLevel::H1 => Style::default()
             .fg(Color::Cyan)
@@ -246,26 +250,25 @@ fn heading_style(level: HeadingLevel) -> Style {
         HeadingLevel::H4 => Style::default()
             .fg(Color::Yellow)
             .add_modifier(Modifier::BOLD),
-        HeadingLevel::H5 | HeadingLevel::H6 => Style::default()
-            .fg(Color::White)
-            .add_modifier(Modifier::BOLD),
+        HeadingLevel::H5 | HeadingLevel::H6 => theme.heading_emphasis(),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::theme::Theme;
 
     #[test]
     fn renders_heading_and_bold() {
-        let lines = render_lines("# Title\n\n**bold** text");
+        let lines = render_lines("# Title\n\n**bold** text", Theme::Dark);
         assert!(lines.len() >= 2);
         assert!(lines[0].spans[0].content.contains("Title"));
     }
 
     #[test]
     fn renders_list_items() {
-        let lines = render_lines("- one\n- two");
+        let lines = render_lines("- one\n- two", Theme::Dark);
         let rendered = lines
             .iter()
             .flat_map(|line| line.spans.iter().map(|span| span.content.as_ref()))
